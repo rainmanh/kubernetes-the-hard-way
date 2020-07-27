@@ -4,7 +4,13 @@ In this lab you will provision a [PKI Infrastructure](https://en.wikipedia.org/w
 
 # Where to do these?
 
-You can do these on any machine with `openssl` on it. But you should be able to copy the generated files to the provisioned VMs. Or just do these from one of the master nodes.
+You can do these on any machine with `cfssl` on it. But you should be able to copy the generated files to the provisioned VMs. Or just do these from one of the master nodes.
+
+To install the tool in Ubuntu:
+
+```
+sudo apt-get install -y golang-cfssl
+```
 
 In our case we do it on the master-1 node, as we have set it up to be the administrative client.
 
@@ -17,17 +23,47 @@ Create a CA certificate, then generate a Certificate Signing Request and use it 
 
 
 ```
-# Create private key for CA
-openssl genrsa -out ca.key 2048
+{
 
-# Comment line starting with RANDFILE in /etc/ssl/openssl.cnf definition to avoid permission issues
-sudo sed -i '0,/RANDFILE/{s/RANDFILE/\#&/}' /etc/ssl/openssl.cnf
+cat > ca-config.json <<EOF
+{
+  "signing": {
+    "default": {
+      "expiry": "8760h"
+    },
+    "profiles": {
+      "kubernetes": {
+        "usages": ["signing", "key encipherment", "server auth", "client auth"],
+        "expiry": "8760h"
+      }
+    }
+  }
+}
+EOF
 
-# Create CSR using the private key
-openssl req -new -key ca.key -subj "/CN=KUBERNETES-CA" -out ca.csr
+cat > ca-csr.json <<EOF
+{
+  "CN": "Kubernetes",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "US",
+      "L": "Portland",
+      "O": "Kubernetes",
+      "OU": "CA",
+      "ST": "Oregon"
+    }
+  ]
+}
+EOF
 
-# Self sign the csr using its own private key
-openssl x509 -req -in ca.csr -signkey ca.key -CAcreateserial  -out ca.crt -days 1000
+cfssl gencert -initca ca-csr.json | cfssljson -bare ca
+mv ca-key.pem ca.key
+mv ca.pem ca.crt
+}
 ```
 Results:
 
@@ -36,7 +72,7 @@ ca.crt
 ca.key
 ```
 
-Reference : https://kubernetes.io/docs/concepts/cluster-administration/certificates/#openssl
+Reference : https://kubernetes.io/docs/concepts/cluster-administration/certificates/#cfssl
 
 The ca.crt is the Kubernetes Certificate Authority certificate and ca.key is the Kubernetes Certificate Authority private key.
 You will use the ca.crt file in many places, so it will be copied to many places.
@@ -51,14 +87,35 @@ In this section you will generate client and server certificates for each Kubern
 Generate the `admin` client certificate and private key:
 
 ```
-# Generate private key for admin user
-openssl genrsa -out admin.key 2048
+{
 
-# Generate CSR for admin user. Note the OU.
-openssl req -new -key admin.key -subj "/CN=admin/O=system:masters" -out admin.csr
+cat > admin-csr.json <<EOF
+{
+  "CN": "admin",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "US",
+      "L": "Portland",
+      "O": "system:masters",
+      "OU": "Kubernetes The Hard Way",
+      "ST": "Oregon"
+    }
+  ]
+}
+EOF
 
-# Sign certificate for admin user using CA servers private key
-openssl x509 -req -in admin.csr -CA ca.crt -CAkey ca.key -CAcreateserial  -out admin.crt -days 1000
+cfssl gencert \
+  -ca=ca.pem \
+  -ca-key=ca-key.pem \
+  -config=ca-config.json \
+  -profile=kubernetes \
+  admin-csr.json | cfssljson -bare admin
+  mv admin-key.pem mv admin.key
+  mv admin.pem admin.crt
 ```
 
 Note that the admin user is part of the **system:masters** group. This is how we are able to perform any administrative operations on Kubernetes cluster using kubectl utility.
@@ -77,14 +134,47 @@ The admin.crt and admin.key file gives you administrative access. We will config
 We are going to skip certificate configuration for Worker Nodes for now. We will deal with them when we configure the workers.
 For now let's just focus on the control plane components.
 
-### The Controller Manager Client Certificate
+### The Controller Manager , kube-proxy, kube-scheduler and service-accounts Client Certificate
 
-Generate the `kube-controller-manager` client certificate and private key:
+Generate the `kube-controller-manager` `kube-proxy` `kube-scheduler` `service-accounts` client certificates and private key:
 
 ```
-openssl genrsa -out kube-controller-manager.key 2048
-openssl req -new -key kube-controller-manager.key -subj "/CN=system:kube-controller-manager" -out kube-controller-manager.csr
-openssl x509 -req -in kube-controller-manager.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out kube-controller-manager.crt -days 1000
+services="kube-controller-manager kube-proxy kube-scheduler service-accounts"
+etcd_ips="127.0.0.1"
+for etcd_host in master-1 master-2; do
+  etcd_ip=$(ssh $etcd_host "hostname -i"| cut -d ' ' -f1)
+  etcd_ips="$etcd_ips,${etcd_ip}"
+done
+for service in $services; do
+cat > ${service}-csr.json <<EOF
+{
+  "CN": "system:${service}",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "US",
+      "L": "Portland",
+      "O": "system:nodes",
+      "OU": "Kubernetes The Hard Way",
+      "ST": "Oregon"
+    }
+  ]
+}
+EOF
+
+  cfssl gencert \
+    -ca=ca.crt \
+    -ca-key=ca.key \
+    -config=ca-config.json \
+    -hostname=${etcd_ips[@]} \
+    -profile=kubernetes \
+    ${service}-csr.json | cfssljson -bare ${service}
+    mv ${service}-key.pem ${service}.key
+    mv ${service}.pem ${service}.crt
+done
 ```
 
 Results:
@@ -92,44 +182,12 @@ Results:
 ```
 kube-controller-manager.key
 kube-controller-manager.crt
-```
-
-
-### The Kube Proxy Client Certificate
-
-Generate the `kube-proxy` client certificate and private key:
-
-
-```
-openssl genrsa -out kube-proxy.key 2048
-openssl req -new -key kube-proxy.key -subj "/CN=system:kube-proxy" -out kube-proxy.csr
-openssl x509 -req -in kube-proxy.csr -CA ca.crt -CAkey ca.key -CAcreateserial  -out kube-proxy.crt -days 1000
-```
-
-Results:
-
-```
 kube-proxy.key
 kube-proxy.crt
-```
-
-### The Scheduler Client Certificate
-
-Generate the `kube-scheduler` client certificate and private key:
-
-
-
-```
-openssl genrsa -out kube-scheduler.key 2048
-openssl req -new -key kube-scheduler.key -subj "/CN=system:kube-scheduler" -out kube-scheduler.csr
-openssl x509 -req -in kube-scheduler.csr -CA ca.crt -CAkey ca.key -CAcreateserial  -out kube-scheduler.crt -days 1000
-```
-
-Results:
-
-```
 kube-scheduler.key
 kube-scheduler.crt
+service-accounts.key
+service-accounts.crt
 ```
 
 ### The Kubernetes API Server Certificate
@@ -139,36 +197,45 @@ The kube-apiserver certificate requires all names that various components may re
 The `openssl` command cannot take alternate names as command line parameter. So we must create a `conf` file for it:
 
 ```
-cat > openssl.cnf <<EOF
-[req]
-req_extensions = v3_req
-distinguished_name = req_distinguished_name
-[req_distinguished_name]
-[ v3_req ]
-basicConstraints = CA:FALSE
-keyUsage = nonRepudiation, digitalSignature, keyEncipherment
-subjectAltName = @alt_names
-[alt_names]
-DNS.1 = kubernetes
-DNS.2 = kubernetes.default
-DNS.3 = kubernetes.default.svc
-DNS.4 = kubernetes.default.svc.cluster.local
-IP.1 = 10.96.0.1
-IP.2 = 192.168.5.11
-IP.3 = 192.168.5.12
-IP.4 = 192.168.5.30
-IP.5 = 127.0.0.1
+services="kube-apiserver"
+KUBERNETES_HOSTNAMES="kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,kubernetes.svc.cluster.local,master-1,master-2"
+etcd_ips="127.0.0.1,10.96.0.1"
+for etcd_host in master-1 master-2; do
+  etcd_ip=$(ssh $etcd_host "hostname -i"| cut -d ' ' -f1)
+  etcd_ips="$etcd_ips,${etcd_ip}"
+done
+for service in $services; do
+cat > ${service}-csr.json <<EOF
+{
+  "CN": "system:${service}",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "US",
+      "L": "Portland",
+      "O": "system:nodes",
+      "OU": "Kubernetes The Hard Way",
+      "ST": "Oregon"
+    }
+  ]
+}
 EOF
-```
 
-Generates certs for kube-apiserver
+  cfssl gencert \
+    -ca=ca.crt \
+    -ca-key=ca.key \
+    -config=ca-config.json \
+    -hostname=${etcd_ips[@]},${KUBERNETES_HOSTNAMES} \
+    -profile=kubernetes \
+    ${service}-csr.json | cfssljson -bare ${service}
+    mv ${service}-key.pem ${service}.key
+    mv ${service}.pem ${service}.crt
+done
 
 ```
-openssl genrsa -out kube-apiserver.key 2048
-openssl req -new -key kube-apiserver.key -subj "/CN=kube-apiserver" -out kube-apiserver.csr -config openssl.cnf
-openssl x509 -req -in kube-apiserver.csr -CA ca.crt -CAkey ca.key -CAcreateserial  -out kube-apiserver.crt -extensions v3_req -extfile openssl.cnf -days 1000
-```
-
 Results:
 
 ```
@@ -180,31 +247,45 @@ kube-apiserver.key
 
 Similarly ETCD server certificate must have addresses of all the servers part of the ETCD cluster
 
-The `openssl` command cannot take alternate names as command line parameter. So we must create a `conf` file for it:
 
 ```
-cat > openssl-etcd.cnf <<EOF
-[req]
-req_extensions = v3_req
-distinguished_name = req_distinguished_name
-[req_distinguished_name]
-[ v3_req ]
-basicConstraints = CA:FALSE
-keyUsage = nonRepudiation, digitalSignature, keyEncipherment
-subjectAltName = @alt_names
-[alt_names]
-IP.1 = 192.168.5.11
-IP.2 = 192.168.5.12
-IP.3 = 127.0.0.1
+services="etcd-server"
+KUBERNETES_HOSTNAMES="kubernetes,kubernetes.default,kubernetes.default.svc,kubernetes.default.svc.cluster,kubernetes.svc.cluster.local"
+etcd_ips="127.0.0.1"
+for etcd_host in master-1 master-2; do
+  etcd_ip=$(ssh $etcd_host "hostname -i"| cut -d ' ' -f1)
+  etcd_ips="$etcd_ips,${etcd_ip}"
+done
+for service in $services; do
+cat > ${service}-csr.json <<EOF
+{
+  "CN": "system:${service}",
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "US",
+      "L": "Portland",
+      "O": "system:nodes",
+      "OU": "Kubernetes The Hard Way",
+      "ST": "Oregon"
+    }
+  ]
+}
 EOF
-```
 
-Generates certs for ETCD
-
-```
-openssl genrsa -out etcd-server.key 2048
-openssl req -new -key etcd-server.key -subj "/CN=etcd-server" -out etcd-server.csr -config openssl-etcd.cnf
-openssl x509 -req -in etcd-server.csr -CA ca.crt -CAkey ca.key -CAcreateserial  -out etcd-server.crt -extensions v3_req -extfile openssl-etcd.cnf -days 1000
+  cfssl gencert \
+    -ca=ca.crt \
+    -ca-key=ca.key \
+    -config=ca-config.json \
+    -hostname=${etcd_ips[@]},${KUBERNETES_HOSTNAMES} \
+    -profile=kubernetes \
+    ${service}-csr.json | cfssljson -bare ${service}
+    mv ${service}-key.pem ${service}.key
+    mv ${service}.pem ${service}.crt
+done
 ```
 
 Results:
@@ -213,26 +294,6 @@ Results:
 etcd-server.key
 etcd-server.crt
 ```
-
-## The Service Account Key Pair
-
-The Kubernetes Controller Manager leverages a key pair to generate and sign service account tokens as describe in the [managing service accounts](https://kubernetes.io/docs/admin/service-accounts-admin/) documentation.
-
-Generate the `service-account` certificate and private key:
-
-```
-openssl genrsa -out service-account.key 2048
-openssl req -new -key service-account.key -subj "/CN=service-accounts" -out service-account.csr
-openssl x509 -req -in service-account.csr -CA ca.crt -CAkey ca.key -CAcreateserial  -out service-account.crt -days 1000
-```
-
-Results:
-
-```
-service-account.key
-service-account.crt
-```
-
 
 ## Distribute the Certificates
 

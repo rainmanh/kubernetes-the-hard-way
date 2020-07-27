@@ -104,7 +104,7 @@ check_cert_ca()
                 CACERT_ISSUER=$(openssl x509 -in $CACERT -text | grep "Issuer: CN"| tr -d " ")
                 CACERT_MD5=$(openssl x509 -noout -modulus -in $CACERT | openssl md5| awk '{print $2}')
                 CAKEY_MD5=$(openssl rsa -noout -modulus -in $CAKEY | openssl md5| awk '{print $2}')
-                if [ $CACERT_SUBJECT == "Subject:CN=KUBERNETES-CA" ] && [ $CACERT_ISSUER == "Issuer:CN=KUBERNETES-CA" ] && [ $CACERT_MD5 == $CAKEY_MD5 ]
+                if [ $CACERT_SUBJECT == "Subject:CN=KUBERNETES-CA" ] && [ $CACERT_ISSUER == "Issuer:C=US,ST=Oregon,L=Portland,O=Kubernetes,OU=CA,CN=Kubernetes" ] && [ $CACERT_MD5 == $CAKEY_MD5 ]
                     then
                         printf "${SUCCESS}CA cert and key are correct\n"
                     else
@@ -131,7 +131,7 @@ check_cert_admin()
                 ADMINCERT_ISSUER=$(openssl x509 -in $ADMINCERT -text | grep "Issuer: CN"| tr -d " ")
                 ADMINCERT_MD5=$(openssl x509 -noout -modulus -in $ADMINCERT | openssl md5| awk '{print $2}')
                 ADMINKEY_MD5=$(openssl rsa -noout -modulus -in $ADMINKEY | openssl md5| awk '{print $2}')
-                if [ $ADMINCERT_SUBJECT == "Subject:CN=admin,O=system:masters" ] && [ $ADMINCERT_ISSUER == "Issuer:CN=KUBERNETES-CA" ] && [ $ADMINCERT_MD5 == $ADMINKEY_MD5 ]
+                if [ $ADMINCERT_SUBJECT == "Subject:C=US,ST=Oregon,L=Portland,O=system:masters,OU=KubernetesTheHardWay,CN=admin" ] && [ $ADMINCERT_ISSUER == "Issuer:C=US,ST=Oregon,L=Portland,O=Kubernetes,OU=CA,CN=Kubernetes" ] && [ $ADMINCERT_MD5 == $ADMINKEY_MD5 ]
                     then
                         printf "${SUCCESS}admin cert and key are correct\n"
                     else
@@ -157,7 +157,7 @@ check_cert_kcm()
                 KCMCERT_ISSUER=$(openssl x509 -in $KCMCERT -text | grep "Issuer: CN"| tr -d " ")
                 KCMCERT_MD5=$(openssl x509 -noout -modulus -in $KCMCERT | openssl md5| awk '{print $2}')
                 KCMKEY_MD5=$(openssl rsa -noout -modulus -in $KCMKEY | openssl md5| awk '{print $2}')
-                if [ $KCMCERT_SUBJECT == "Subject:CN=system:kube-controller-manager" ] && [ $KCMCERT_ISSUER == "Issuer:CN=KUBERNETES-CA" ] && [ $KCMCERT_MD5 == $KCMKEY_MD5 ]
+                if [ $KCMCERT_SUBJECT == "Subject:C=US,ST=Oregon,L=Portland,O=system:nodes,OU=KubernetesTheHardWay,CN=system:kube-controller-manager" ] && [ $KCMCERT_ISSUER == "Issuer:C=US,ST=Oregon,L=Portland,O=Kubernetes,OU=CA,CN=Kubernetes" ] && [ $KCMCERT_MD5 == $KCMKEY_MD5 ]
                     then
                         printf "${SUCCESS}kube-controller-manager cert and key are correct\n"
                     else
@@ -183,7 +183,7 @@ check_cert_kp()
                 KPCERT_ISSUER=$(openssl x509 -in $KPCERT -text | grep "Issuer: CN"| tr -d " ")
                 KPCERT_MD5=$(openssl x509 -noout -modulus -in $KPCERT | openssl md5| awk '{print $2}')
                 KPKEY_MD5=$(openssl rsa -noout -modulus -in $KPKEY | openssl md5| awk '{print $2}')
-                if [ $KPCERT_SUBJECT == "Subject:CN=system:kube-proxy" ] && [ $KPCERT_ISSUER == "Issuer:CN=KUBERNETES-CA" ] && [ $KPCERT_MD5 == $KPKEY_MD5 ]
+                if [ $KPCERT_SUBJECT == "Subject:C=US,ST=Oregon,L=Portland,O=system:nodes,OU=KubernetesTheHardWay,CN=system:kube-proxy" ] && [ $KPCERT_ISSUER == "Issuer:C=US,ST=Oregon,L=Portland,O=Kubernetes,OU=CA,CN=Kubernetes" ] && [ $KPCERT_MD5 == $KPKEY_MD5 ]
                     then
                         printf "${SUCCESS}kube-proxy cert and key are correct\n"
                     else
@@ -209,7 +209,7 @@ check_cert_ks()
                 KSCERT_ISSUER=$(openssl x509 -in $KSCERT -text | grep "Issuer: CN"| tr -d " ")
                 KSCERT_MD5=$(openssl x509 -noout -modulus -in $KSCERT | openssl md5| awk '{print $2}')
                 KSKEY_MD5=$(openssl rsa -noout -modulus -in $KSKEY | openssl md5| awk '{print $2}')
-                if [ $KSCERT_SUBJECT == "Subject:CN=system:kube-scheduler" ] && [ $KSCERT_ISSUER == "Issuer:CN=KUBERNETES-CA" ] && [ $KSCERT_MD5 == $KSKEY_MD5 ]
+                if [ $KSCERT_SUBJECT == "Subject:C=US,ST=Oregon,L=Portland,O=system:nodes,OU=KubernetesTheHardWay,CN=system:kube-scheduler" ] && [ $KSCERT_ISSUER == "Issuer:C=US,ST=Oregon,L=Portland,O=Kubernetes,OU=CA,CN=Kubernetes ] && [ $KSCERT_MD5 == $KSKEY_MD5 ]
                     then
                         printf "${SUCCESS}kube-scheduler cert and key are correct\n"
                     else
@@ -235,7 +235,7 @@ check_cert_api()
                 APICERT_ISSUER=$(openssl x509 -in $APICERT -text | grep "Issuer: CN"| tr -d " ")
                 APICERT_MD5=$(openssl x509 -noout -modulus -in $APICERT | openssl md5| awk '{print $2}')
                 APIKEY_MD5=$(openssl rsa -noout -modulus -in $APIKEY | openssl md5| awk '{print $2}')
-                if [ $APICERT_SUBJECT == "Subject:CN=kube-apiserver" ] && [ $APICERT_ISSUER == "Issuer:CN=KUBERNETES-CA" ] && [ $APICERT_MD5 == $APIKEY_MD5 ]
+                if [ $APICERT_SUBJECT == "Subject:CN=kube-apiserver" ] && [ $APICERT_ISSUER == "Issuer:C=US,ST=Oregon,L=Portland,O=Kubernetes,OU=CA,CN=Kubernetes" ] && [ $APICERT_MD5 == $APIKEY_MD5 ]
                     then
                         printf "${SUCCESS}kube-apiserver cert and key are correct\n"
                     else
@@ -261,7 +261,7 @@ check_cert_etcd()
                 ETCDCERT_ISSUER=$(openssl x509 -in $ETCDCERT -text | grep "Issuer: CN"| tr -d " ")
                 ETCDCERT_MD5=$(openssl x509 -noout -modulus -in $ETCDCERT | openssl md5| awk '{print $2}')
                 ETCDKEY_MD5=$(openssl rsa -noout -modulus -in $ETCDKEY | openssl md5| awk '{print $2}')
-                if [ $ETCDCERT_SUBJECT == "Subject:CN=etcd-server" ] && [ $ETCDCERT_ISSUER == "Issuer:CN=KUBERNETES-CA" ] && [ $ETCDCERT_MD5 == $ETCDKEY_MD5 ]
+                if [ $ETCDCERT_SUBJECT == "Subject:C=US,ST=Oregon,L=Portland,O=system:nodes,OU=KubernetesTheHardWay,CN=system:etcd-server" ] && [ $ETCDCERT_ISSUER == "Issuer:CN=C=US,ST=Oregon,L=Portland,O=Kubernetes,OU=CA,CN=Kubernetes" ] && [ $ETCDCERT_MD5 == $ETCDKEY_MD5 ]
                     then
                         printf "${SUCCESS}etcd-server.crt / etcd-server.key are correct\n"
                     else
@@ -287,7 +287,7 @@ check_cert_sa()
                 SACERT_ISSUER=$(openssl x509 -in $SACERT -text | grep "Issuer: CN"| tr -d " ")
                 SACERT_MD5=$(openssl x509 -noout -modulus -in $SACERT | openssl md5| awk '{print $2}')
                 SAKEY_MD5=$(openssl rsa -noout -modulus -in $SAKEY | openssl md5| awk '{print $2}')
-                if [ $SACERT_SUBJECT == "Subject:CN=service-accounts" ] && [ $SACERT_ISSUER == "Issuer:CN=KUBERNETES-CA" ] && [ $SACERT_MD5 == $SAKEY_MD5 ]
+                if [ $SACERT_SUBJECT == "Subject:C=US,ST=Oregon,L=Portland,O=system:nodes,OU=KubernetesTheHardWay,CN=system:service-account" ] && [ $SACERT_ISSUER == "Issuer:C=US,ST=Oregon,L=Portland,O=Kubernetes,OU=CA,CN=Kubernetes" ] && [ $SACERT_MD5 == $SAKEY_MD5 ]
                     then
                         printf "${SUCCESS}Service Account cert and key are correct\n"
                     else
@@ -315,7 +315,7 @@ check_cert_kpkubeconfig()
                 KPKUBECONFIG_CERT_MD5=$(cat $KPKUBECONFIG | grep "client-certificate-data:" | awk '{print $2}' | base64 --decode | openssl x509 -noout | openssl md5 | awk '{print $2}')
                 KPKUBECONFIG_KEY_MD5=$(cat $KPKUBECONFIG | grep "client-key-data" | awk '{print $2}' | base64 --decode | openssl rsa -noout | openssl md5 | awk '{print $2}')
                 KPKUBECONFIG_SERVER=$(cat $KPKUBECONFIG | grep "server:"| awk '{print $2}')
-                if [ $KPKUBECONFIG_SUBJECT == "Subject:CN=system:kube-proxy" ] && [ $KPKUBECONFIG_ISSUER == "Issuer:CN=KUBERNETES-CA" ] && [ $KPKUBECONFIG_CERT_MD5 == $KPKUBECONFIG_KEY_MD5 ] && [ $KPKUBECONFIG_SERVER == "https://192.168.5.30:6443" ]
+                if [ $KPKUBECONFIG_SUBJECT == "Subject:CN=system:kube-proxy" ] && [ $KPKUBECONFIG_ISSUER == "Issuer:C=US,ST=Oregon,L=Portland,O=Kubernetes,OU=CA,CN=Kubernetes" ] && [ $KPKUBECONFIG_CERT_MD5 == $KPKUBECONFIG_KEY_MD5 ] && [ $KPKUBECONFIG_SERVER == "https://192.168.5.30:6443" ]
                     then
                         printf "${SUCCESS}kube-proxy kubeconfig cert and key are correct\n"
                     else
@@ -342,7 +342,7 @@ check_cert_kcmkubeconfig()
                 KCMKUBECONFIG_CERT_MD5=$(cat $KCMKUBECONFIG | grep "client-certificate-data:" | awk '{print $2}' | base64 --decode | openssl x509 -noout | openssl md5 | awk '{print $2}')
                 KCMKUBECONFIG_KEY_MD5=$(cat $KCMKUBECONFIG | grep "client-key-data" | awk '{print $2}' | base64 --decode | openssl rsa -noout | openssl md5 | awk '{print $2}')
                 KCMKUBECONFIG_SERVER=$(cat $KCMKUBECONFIG | grep "server:"| awk '{print $2}')
-                if [ $KCMKUBECONFIG_SUBJECT == "Subject:CN=system:kube-controller-manager" ] && [ $KCMKUBECONFIG_ISSUER == "Issuer:CN=KUBERNETES-CA" ] && [ $KCMKUBECONFIG_CERT_MD5 == $KCMKUBECONFIG_KEY_MD5 ] && [ $KCMKUBECONFIG_SERVER == "https://127.0.0.1:6443" ]
+                if [ $KCMKUBECONFIG_SUBJECT == "Subject:CN=system:kube-controller-manager" ] && [ $KCMKUBECONFIG_ISSUER == "Issuer:C=US,ST=Oregon,L=Portland,O=Kubernetes,OU=CA,CN=Kubernetes" ] && [ $KCMKUBECONFIG_CERT_MD5 == $KCMKUBECONFIG_KEY_MD5 ] && [ $KCMKUBECONFIG_SERVER == "https://127.0.0.1:6443" ]
                     then
                         printf "${SUCCESS}kube-controller-manager kubeconfig cert and key are correct\n"
                     else
@@ -370,7 +370,7 @@ check_cert_kskubeconfig()
                 KSKUBECONFIG_CERT_MD5=$(cat $KSKUBECONFIG | grep "client-certificate-data:" | awk '{print $2}' | base64 --decode | openssl x509 -noout | openssl md5 | awk '{print $2}')
                 KSKUBECONFIG_KEY_MD5=$(cat $KSKUBECONFIG | grep "client-key-data" | awk '{print $2}' | base64 --decode | openssl rsa -noout | openssl md5 | awk '{print $2}')
                 KSKUBECONFIG_SERVER=$(cat $KSKUBECONFIG | grep "server:"| awk '{print $2}')
-                if [ $KSKUBECONFIG_SUBJECT == "Subject:CN=system:kube-scheduler" ] && [ $KSKUBECONFIG_ISSUER == "Issuer:CN=KUBERNETES-CA" ] && [ $KSKUBECONFIG_CERT_MD5 == $KSKUBECONFIG_KEY_MD5 ] && [ $KSKUBECONFIG_SERVER == "https://127.0.0.1:6443" ]
+                if [ $KSKUBECONFIG_SUBJECT == "Subject:CN=system:kube-scheduler" ] && [ $KSKUBECONFIG_ISSUER == "Issuer:C=US,ST=Oregon,L=Portland,O=Kubernetes,OU=CA,CN=Kubernetes" ] && [ $KSKUBECONFIG_CERT_MD5 == $KSKUBECONFIG_KEY_MD5 ] && [ $KSKUBECONFIG_SERVER == "https://127.0.0.1:6443" ]
                     then
                         printf "${SUCCESS}kube-scheduler kubeconfig cert and key are correct\n"
                     else

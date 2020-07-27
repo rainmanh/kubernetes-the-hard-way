@@ -4,15 +4,24 @@ Note: You must have VirtualBox and Vagrant configured at this point
 
 Download this github repository and cd into the vagrant folder
 
-`git clone https://github.com/mmumshad/kubernetes-the-hard-way.git`
+`git clone https://github.com/rainmanh/kubernetes-the-hard-way.git`
 
 CD into vagrant directory
 
 `cd kubernetes-the-hard-way\vagrant`
 
-Run Vagrant up
+* If you want to install containerd in the workers do:
 
-`vagrant up`
+```
+CONTAINER="containerd" vagrant up worker-2
+```
+
+* If you want to install docker in the workers do:
+
+
+```
+CONTAINER="docker" vagrant up worker-2
+```
 
 
 This does the below:

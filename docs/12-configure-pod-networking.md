@@ -1,20 +1,61 @@
 # Provisioning Pod Network
 
-We chose to use CNI - [weave](https://www.weave.works/docs/net/latest/kubernetes/kube-addon/) as our networking option.
+We can do either of the following: CNI or CNI-Weave for networking.
 
-### Install CNI plugins
+On both cases we have to do the same to install the CNI Plugin
+
+## Install CNI plugin
 
 Download the CNI Plugins required for weave on each of the worker nodes - `worker-1` and `worker-2`
 
-`wget https://github.com/containernetworking/plugins/releases/download/v0.7.5/cni-plugins-amd64-v0.7.5.tgz`
+`wget https://github.com/containernetworking/plugins/releases/download/v0.8.0/cni-plugins-amd64-v0.8.0.tgz`
 
 Extract it to /opt/cni/bin directory
 
-`sudo tar -xzvf cni-plugins-amd64-v0.7.5.tgz  --directory /opt/cni/bin/`
+`sudo tar -xzvf cni-plugins-amd64-v0.8.0.tgz  --directory /opt/cni/bin/`
 
 Reference: https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/#cni
 
-### Deploy Weave Network
+## CNI 
+
+Create the bridge network configuration file:
+
+```
+cat <<EOF | sudo tee /etc/cni/net.d/10-bridge.conf
+{
+    "cniVersion": "0.3.1",
+    "name": "bridge",
+    "type": "bridge",
+    "bridge": "cnio0",
+    "isGateway": true,
+    "ipMasq": true,
+    "ipam": {
+        "type": "host-local",
+        "ranges": [
+          [{"subnet": "10.32.0.0/12"}]
+        ],
+        "routes": [{"dst": "0.0.0.0/0"}]
+    }
+}
+EOF
+```
+
+Create the loopback network configuration file:
+
+```
+cat <<EOF | sudo tee /etc/cni/net.d/99-loopback.conf
+{
+    "cniVersion": "0.3.1",
+    "name": "lo",
+    "type": "loopback"
+}
+EOF
+```
+
+## CNI- WEAVE
+
+We chose to use CNI - [weave](https://www.weave.works/docs/net/latest/kubernetes/kube-addon/) as our networking option.
+
 
 Deploy weave network. Run only once on the `master` node.
 

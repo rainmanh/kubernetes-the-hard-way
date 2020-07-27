@@ -24,11 +24,21 @@ So let's get started!
 
 # Pre-Requisite
 
+This would happen in the **master controller** servers.
+
 **kube-apiserver** - Ensure bootstrap token based authentication is enabled on the kube-apiserver.
+
+```
+cat /etc/systemd/system/kube-apiserver.service
+```
 
 `--enable-bootstrap-token-auth=true`
 
 **kube-controller-manager** - The certificate requests are signed by the kube-controller-manager ultimately. The kube-controller-manager requires the CA Certificate and Key to perform these operations.
+
+```
+/etc/systemd/system/kube-controller-manager.service 
+```
 
 ```
   --cluster-signing-cert-file=/var/lib/kubernetes/ca.crt \\
@@ -49,9 +59,10 @@ scp ca.crt worker-2:~/
 
 ```
 wget -q --show-progress --https-only --timestamping \
-  https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl \
-  https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kube-proxy \
-  https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubelet
+  https://github.com/containernetworking/plugins/releases/download/v0.8.0/cni-plugins-linux-amd64-v0.8.0.tgz \
+  https://storage.googleapis.com/kubernetes-release/release/v1.18.6/bin/linux/amd64/kubectl \
+  https://storage.googleapis.com/kubernetes-release/release/v1.18.6/bin/linux/amd64/kube-proxy \
+  https://storage.googleapis.com/kubernetes-release/release/v1.18.6/bin/linux/amd64/kubelet
 ```
 
 Reference: https://kubernetes.io/docs/setup/release/#node-binaries
@@ -72,13 +83,27 @@ Install the worker binaries:
 
 ```
 {
-  chmod +x kubectl kube-proxy kubelet
-  sudo mv kubectl kube-proxy kubelet /usr/local/bin/
+  mkdir containerd
+  tar -xvf crictl-v1.18.0-linux-amd64.tar.gz
+  tar -xvf containerd-1.3.6-linux-amd64.tar.gz -C containerd
+  sudo tar -xvf cni-plugins-linux-amd64-v0.8.0.tgz -C /opt/cni/bin/
+  sudo mv runc.amd64 runc
+  chmod +x crictl kubectl kube-proxy kubelet runc 
+  sudo mv crictl kubectl kube-proxy kubelet runc /usr/local/bin/
+  sudo mv containerd/bin/* /bin/
 }
 ```
-### Move the ca certificate
 
-`sudo mv ca.crt /var/lib/kubernetes/`
+
+### Configure the Kubelet
+
+```
+{
+  sudo mv ${HOSTNAME}.key ${HOSTNAME}.crt /var/lib/kubelet/
+  sudo mv ${HOSTNAME}.kubeconfig /var/lib/kubelet/kubeconfig
+  sudo mv ca.crt /var/lib/kubernetes/
+}
+```
 
 # Step 1 Create the Boostrap Token to be used by Nodes(Kubelets) to invoke Certificate API
 
@@ -306,6 +331,8 @@ Requires=docker.service
 [Service]
 ExecStart=/usr/local/bin/kubelet \\
   --bootstrap-kubeconfig="/var/lib/kubelet/bootstrap-kubeconfig" \\
+  --container-runtime=remote \\
+  --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \\
   --config=/var/lib/kubelet/kubelet-config.yaml \\
   --image-pull-progress-deadline=2m \\
   --kubeconfig=/var/lib/kubelet/kubeconfig \\

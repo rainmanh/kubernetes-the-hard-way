@@ -16,6 +16,8 @@ Certificate File Names: I use <name>.crt for public certificate and <name>.key f
 I generate separate certificates for etcd-server instead of using kube-apiserver
 
 Network:
-We use weavenet
+We use both: 
+* weavenet
+* CNI 
 
 Add E2E Tests

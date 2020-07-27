@@ -18,15 +18,15 @@ Download the official etcd release binaries from the [coreos/etcd](https://githu
 
 ```
 wget -q --show-progress --https-only --timestamping \
-  "https://github.com/coreos/etcd/releases/download/v3.3.9/etcd-v3.3.9-linux-amd64.tar.gz"
+  "https://github.com/coreos/etcd/releases/download/3.4.10/etcd-3.4.10-linux-amd64.tar.gz"
 ```
 
 Extract and install the `etcd` server and the `etcdctl` command line utility:
 
 ```
 {
-  tar -xvf etcd-v3.3.9-linux-amd64.tar.gz
-  sudo mv etcd-v3.3.9-linux-amd64/etcd* /usr/local/bin/
+  tar -xvf etcd-3.4.10-linux-amd64.tar.gz
+  sudo mv etcd-3.4.10-linux-amd64/etcd* /usr/local/bin/
 }
 ```
 
@@ -42,7 +42,7 @@ Extract and install the `etcd` server and the `etcdctl` command line utility:
 The instance internal IP address will be used to serve client requests and communicate with etcd cluster peers. Retrieve the internal IP address of the master(etcd) nodes:
 
 ```
-INTERNAL_IP=$(ip addr show enp0s8 | grep "inet " | awk '{print $2}' | cut -d / -f 1)
+INTERNAL_IP=$(hostname -i)
 ```
 
 Each etcd member must have a unique name within an etcd cluster. Set the etcd name to match the hostname of the current compute instance:
@@ -119,4 +119,7 @@ sudo ETCDCTL_API=3 etcdctl member list \
 
 Reference: https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/#starting-etcd-clusters
 
-Next: [Bootstrapping the Kubernetes Control Plane](08-bootstrapping-kubernetes-controllers.md)
+Now you can decide which provisioning method you want to use, either a Manual bootstrapping where you have to place the certificates manually or a more automated process using TLS bootstrapping.
+
+Next: [Bootstrapping the Kubernetes Control Plane - Manual Worker Bootstrapping](08a-bootstrapping-kubernetes-controllers.md)
+Next: [Bootstrapping the Kubernetes Control Plane - TLS Worker Bootstrapping](08b-bootstrapping-kubernetes-controllers.md)
